@@ -5,7 +5,8 @@ async function fetchWeather(city) {
     document.getElementById('weather-result').textContent = "Please select a city.";
     return;
   }
-
+  document.getElementById('weather-result').innerHTML = `<p style="color: #0077b6;">Please wait... Fetching weather data for <strong>${city}</strong>...</p>`;
+  
   const geoURL = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)},PK&limit=1&appid=${key}`;
 
   try {
@@ -19,6 +20,7 @@ async function fetchWeather(city) {
 
     const { lat, lon, name, country } = geoData[0];
 
+    
     const weatherURL = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${key}`;
     const weatherRes = await fetch(weatherURL);
     const weatherData = await weatherRes.json();
@@ -26,11 +28,35 @@ async function fetchWeather(city) {
     const temp = weatherData.main.temp;
     const desc = weatherData.weather[0].description;
 
-    document.getElementById('weather-result').innerHTML = `
+    let html = `
       <h2>${name}, ${country}</h2>
-      <p>Temperature: ${temp}°C</p>
-      <p>Condition: ${desc}</p>
+      <p><strong>Now:</strong> ${temp}°C, ${desc}</p>
     `;
+
+
+    const forecastURL = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${key}`;
+    const forecastRes = await fetch(forecastURL);
+    const forecastData = await forecastRes.json();
+
+    
+    const dailyForecasts = forecastData.list.filter(item =>
+      item.dt_txt.includes("12:00:00")
+    );
+
+    html += `<h3>5-Day Forecast</h3><ul style="list-style:none;padding:0;">`;
+
+    dailyForecasts.forEach(day => {
+      const date = new Date(day.dt_txt).toLocaleDateString();
+      const temp = day.main.temp;
+      const description = day.weather[0].description;
+
+      html += `<li>${date}: ${temp}°C, ${description}</li>`;
+    });
+
+    html += `</ul>`;
+
+    document.getElementById('weather-result').innerHTML = html;
+
   } catch (error) {
     console.error(error);
     document.getElementById('weather-result').textContent = "Error fetching data!";
